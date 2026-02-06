@@ -1,0 +1,29 @@
+/**
+ * 认证错误类
+ */
+export class AuthError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public originalError?: any
+  ) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
+// 错误代码常量
+export const AUTH_ERROR_CODES = {
+  SIGNUP_FAILED: 'SIGNUP_FAILED',
+  SIGNIN_FAILED: 'SIGNIN_FAILED',
+  SIGNOUT_FAILED: 'SIGNOUT_FAILED',
+  VERIFY_OTP_FAILED: 'VERIFY_OTP_FAILED',
+  RESET_PASSWORD_FAILED: 'RESET_PASSWORD_FAILED',
+  UPDATE_PASSWORD_FAILED: 'UPDATE_PASSWORD_FAILED',
+  UPDATE_PROFILE_FAILED: 'UPDATE_PROFILE_FAILED',
+  GET_USER_FAILED: 'GET_USER_FAILED',
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+  USER_NOT_FOUND: 'USER_NOT_FOUND',
+  EMAIL_NOT_CONFIRMED: 'EMAIL_NOT_CONFIRMED',
+  ACCOUNT_BANNED: 'ACCOUNT_BANNED',
+} as const;

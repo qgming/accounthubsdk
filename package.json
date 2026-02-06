@@ -1,0 +1,44 @@
+{
+  "name": "@accounthub/sdk",
+  "version": "1.0.0",
+  "description": "AccountHub SDK - 纯 TypeScript SDK，支持在 Vue、React、React Native 等任何前端环境中使用",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "accounthub",
+    "sdk",
+    "authentication",
+    "membership",
+    "payment",
+    "supabase",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.0.0"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0"
+  }
+}
