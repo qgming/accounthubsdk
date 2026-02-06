@@ -2,6 +2,13 @@
 
 <div align="center">
 
+[![npm version](https://img.shields.io/npm/v/@accounthub/sdk.svg?style=flat-square)](https://www.npmjs.com/package/@accounthub/sdk)
+[![npm downloads](https://img.shields.io/npm/dm/@accounthub/sdk.svg?style=flat-square)](https://www.npmjs.com/package/@accounthub/sdk)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg?style=flat-square)](https://www.typescriptlang.org/)
+[![GitHub stars](https://img.shields.io/github/stars/qgming/accounthubsdk.svg?style=flat-square)](https://github.com/qgming/accounthubsdk/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/qgming/accounthubsdk.svg?style=flat-square)](https://github.com/qgming/accounthubsdk/issues)
+
 **企业级多应用账户管理 SDK - 为您的应用提供完整的用户、会员、支付和配置管理解决方案**
 
 [快速开始](#-快速开始) • [核心功能](#-核心功能) • [API 文档](#-api-文档) • [框架集成](#-框架集成示例)
