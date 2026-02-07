@@ -43,6 +43,7 @@ export type {
   PaymentRecord,
   CreatePaymentOptions,
   MembershipPlan,
+  PaymentChannelConfig,
 } from './payment/types';
 export { PaymentError, PAYMENT_ERROR_CODES } from './payment/errors';
 

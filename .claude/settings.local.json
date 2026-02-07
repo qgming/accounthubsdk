@@ -5,7 +5,14 @@
       "Bash(git commit:*)",
       "Bash(git remote add:*)",
       "Bash(npm whoami:*)",
-      "Bash(npm run type-check:*)"
+      "Bash(npm run type-check:*)",
+      "Bash(npm run build)",
+      "mcp__SupabaseMcpServers__list_tables",
+      "mcp__SupabaseMcpServers__apply_migration",
+      "mcp__SupabaseMcpServers__execute_sql",
+      "mcp__SupabaseMcpServers__list_edge_functions",
+      "mcp__SupabaseMcpServers__deploy_edge_function",
+      "Bash(npm publish --access public)"
     ]
   }
 }

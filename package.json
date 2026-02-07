@@ -1,6 +1,6 @@
 {
   "name": "@accounthub/sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AccountHub SDK - 纯 TypeScript SDK，支持在 Vue、React、React Native 等任何前端环境中使用",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

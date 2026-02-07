@@ -8,9 +8,22 @@ export type PaymentMethod = 'alipay' | 'wechat' | 'stripe' | 'manual' | 'epay';
 // 支付状态
 export type PaymentStatus = 'success' | 'failed' | 'pending' | 'refunded';
 
+// 支付渠道配置
+export interface PaymentChannelConfig {
+  id: string;
+  application_id: string | null;
+  payment_method: string;
+  config: any;
+  is_active: boolean | null;
+  is_sandbox: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 // 结账会话
 export interface CheckoutSession {
   sessionId: string;
+  paymentId: string;
   paymentUrl: string;
   expiresAt: string;
 }

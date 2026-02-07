@@ -7,7 +7,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg?style=flat-square)](https://www.typescriptlang.org/)
 [![GitHub stars](https://img.shields.io/github/stars/qgming/accounthubsdk.svg?style=flat-square)](https://github.com/qgming/accounthubsdk/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues/qgming/accounthubsdk.svg?style=flat-square)](https://github.com/qgming/accounthubsdk/issues)
 
 **企业级多应用账户管理 SDK - 为您的应用提供完整的用户、会员、支付和配置管理解决方案**
 
@@ -235,9 +234,6 @@ await accountHub.auth.signOut();
 #### 密码管理
 
 ```typescript
-// 发送密码重置邮件
-await accountHub.auth.resetPassword("user@example.com");
-
 // 更新密码（需要已登录）
 await accountHub.auth.updatePassword("newPassword123");
 ```
@@ -342,6 +338,66 @@ const plans = await accountHub.payment.getMembershipPlans();
 
 // 获取单个套餐
 const plan = await accountHub.payment.getMembershipPlan("plan-id");
+```
+
+#### 创建支付会话（便捷方法）⭐ 新增
+
+```typescript
+// 为会员计划创建支付会话（推荐使用）
+const session = await accountHub.payment.createMembershipCheckoutSession(
+  userId,
+  planId,
+  channelId,
+  {
+    returnUrl: "myapp://payment-return",
+    metadata: { source: "mobile" },
+  },
+);
+
+console.log("会话 ID:", session.sessionId);
+console.log("支付 ID:", session.paymentId);
+console.log("支付链接:", session.paymentUrl);
+console.log("过期时间:", session.expiresAt);
+```
+
+#### 创建支付会话（完整方法）
+
+```typescript
+// 获取支付渠道列表
+const channels = await accountHub.payment.getPaymentChannels();
+
+// 获取单个支付渠道
+const channel = await accountHub.payment.getPaymentChannel(channelId);
+
+// 创建支付会话
+const session = await accountHub.payment.createCheckoutSession(userId, {
+  amount: 99.0,
+  currency: "CNY",
+  paymentMethod: "alipay",
+  channelId: channelId,
+  returnUrl: "myapp://payment-return",
+  metadata: { plan_id: planId },
+});
+```
+
+#### 验证支付状态 ⭐ 新增
+
+```typescript
+// 根据会话 ID 验证支付是否成功
+const isPaid = await accountHub.payment.verifyPaymentBySessionId(sessionId);
+
+if (isPaid) {
+  console.log("支付成功！");
+  // 更新 UI 或跳转到成功页面
+}
+
+// 获取完整的支付记录
+const payment = await accountHub.payment.getPaymentBySessionId(sessionId);
+if (payment) {
+  console.log("支付状态:", payment.status);
+  console.log("支付金额:", payment.amount);
+  console.log("支付时间:", payment.paid_at);
+}
 ```
 
 #### 创建支付记录
@@ -1241,9 +1297,28 @@ interface PaymentRecord {
   payment_method: PaymentMethod;
   status: PaymentStatus;
   transaction_id?: string;
+  session_id?: string; // 新增：支付会话 ID
   invoice_url?: string;
   paid_at?: string;
   created_at: string;
+}
+
+interface CheckoutSession {
+  sessionId: string;
+  paymentId: string; // 新增：支付记录 ID
+  paymentUrl: string;
+  expiresAt: string;
+}
+
+interface PaymentChannelConfig {
+  id: string;
+  application_id: string | null;
+  payment_method: string;
+  config: any;
+  is_active: boolean | null;
+  is_sandbox: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 type PaymentMethod = "stripe" | "alipay" | "wechat" | "epay" | "manual";
@@ -1334,6 +1409,18 @@ accounthubsdk/
 ---
 
 ## 📝 更新日志
+
+### v1.0.1 (2026-02-07)
+
+**支付模块增强**
+
+- ✨ 新增 `createMembershipCheckoutSession` 便捷方法，简化会员购买流程
+- ✨ 新增 `getPaymentBySessionId` 方法，支持通过会话 ID 查询支付记录
+- ✨ 新增 `verifyPaymentBySessionId` 方法，快速验证支付状态
+- ✨ `CheckoutSession` 接口新增 `paymentId` 字段，方便直接获取支付记录 ID
+- ✨ 导出 `PaymentChannelConfig` 类型，提供完整的类型支持
+
+---
 
 ### v1.0.0 (2026-02-06)
 
