@@ -23,6 +23,9 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: 升级 npm（OIDC 需要 11.5.1+）
+        run: npm install -g npm@latest
+
       - name: 安装依赖
         run: npm ci
 
