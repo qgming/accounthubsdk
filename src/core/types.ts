@@ -3,14 +3,8 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 // 导出 Supabase User 类型
 export type User = SupabaseUser;
 
-// 会员状态类型
-export type MembershipStatus =
-  | 'active'
-  | 'inactive'
-  | 'suspended'
-  | 'expired'
-  | 'trial'
-  | 'cancelled';
+// 会员状态类型（与数据库 CHECK 约束一致：active/inactive/expired）
+export type MembershipStatus = 'active' | 'inactive' | 'expired';
 
 // 支付状态类型
 export type PaymentStatus = 'paid' | 'pending' | 'failed' | 'refunded';

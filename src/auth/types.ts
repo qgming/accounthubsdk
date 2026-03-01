@@ -2,7 +2,7 @@
  * 认证相关类型定义
  */
 
-import type { User } from '../core/types';
+import type { User, Session } from '@supabase/supabase-js';
 
 // 注册数据
 export interface SignUpData {
@@ -26,13 +26,13 @@ export interface SignUpResult {
 // 登录结果
 export interface SignInResult {
   user: User;
-  session: any;
+  session: Session;
 }
 
 // OTP 验证结果
 export interface VerifyOtpResult {
   user: User;
-  session: any;
+  session: Session;
 }
 
 // 更新用户资料数据

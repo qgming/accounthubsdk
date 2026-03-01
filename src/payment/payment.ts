@@ -7,6 +7,7 @@ import type {
   CreatePaymentOptions,
   MembershipPlan,
   PaymentMethod,
+  PaymentChannelConfig,
 } from './types';
 import { PaymentError, PAYMENT_ERROR_CODES } from './errors';
 
@@ -274,7 +275,7 @@ export class Payment {
    * @param channelId 渠道 ID
    * @returns 支付渠道配置
    */
-  async getPaymentChannel(channelId: string): Promise<any> {
+  async getPaymentChannel(channelId: string): Promise<PaymentChannelConfig | null> {
     try {
       const supabase = getSupabaseClient();
       const { data, error } = await supabase
@@ -308,7 +309,7 @@ export class Payment {
    * @param applicationId 应用 ID（可选，默认使用配置中的 appId）
    * @returns 支付渠道列表
    */
-  async getPaymentChannels(applicationId?: string): Promise<any[]> {
+  async getPaymentChannels(applicationId?: string): Promise<PaymentChannelConfig[]> {
     try {
       const supabase = getSupabaseClient();
       const config = configManager.getConfig();

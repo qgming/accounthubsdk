@@ -1,9 +1,44 @@
 import { getSupabaseClient } from '../core/client'
+import { configManager } from '../core/config'
+import { deriveKey, decryptConfigData } from '../core/crypto'
 import { ConfigError, CONFIG_ERROR_CODES } from './errors'
 import type { AppConfigData, GetConfigOptions } from './types'
 
 export class Config {
   private configCache: Map<string, { data: AppConfigData; timestamp: number }> = new Map()
+  // 防止内存泄漏：缓存条目上限
+  private static readonly MAX_CACHE_SIZE = 100
+  // 缓存派生密钥，避免每次重复执行 PBKDF2（CPU 密集操作）
+  private derivedKey: Uint8Array | null = null
+
+  /**
+   * 获取（并缓存）解密密钥
+   * 使用 appKey + appId 派生 AES-256-GCM 密钥，只计算一次
+   */
+  private getDerivedKey(): Uint8Array {
+    if (this.derivedKey === null) {
+      const { appKey, appId } = configManager.getConfig()
+      this.derivedKey = deriveKey(appKey, appId)
+    }
+    return this.derivedKey
+  }
+
+  /**
+   * 解密单条配置的 config_data 字段
+   * 未加密的旧数据原样返回，保持向后兼容
+   */
+  private decryptConfig(config: AppConfigData): AppConfigData {
+    try {
+      const key = this.getDerivedKey()
+      return {
+        ...config,
+        config_data: decryptConfigData(config.config_data, key),
+      }
+    } catch {
+      // 解密失败时返回原始数据（避免因旧数据格式导致崩溃）
+      return config
+    }
+  }
 
   /**
    * 根据config_key获取配置
@@ -44,10 +79,11 @@ export class Config {
       )
     }
 
-    // 缓存结果
-    this.configCache.set(configKey, { data, timestamp: Date.now() })
+    // 缓存结果（缓存解密后的数据，避免重复解密）
+    const decrypted = this.decryptConfig(data)
+    this.setCacheEntry(configKey, { data: decrypted, timestamp: Date.now() })
 
-    return data
+    return decrypted
   }
 
   /**
@@ -93,7 +129,7 @@ export class Config {
       )
     }
 
-    return data || []
+    return (data || []).map(item => this.decryptConfig(item))
   }
 
   /**
@@ -116,7 +152,7 @@ export class Config {
       )
     }
 
-    return data || []
+    return (data || []).map(item => this.decryptConfig(item))
   }
 
   /**
@@ -128,5 +164,19 @@ export class Config {
     } else {
       this.configCache.clear()
     }
+  }
+
+  /**
+   * 写入缓存，超出上限时清除最旧的条目
+   */
+  private setCacheEntry(key: string, value: { data: AppConfigData; timestamp: number }): void {
+    if (this.configCache.size >= Config.MAX_CACHE_SIZE) {
+      // Map 的迭代顺序是插入顺序，删除第一个（最旧）条目
+      const firstKey = this.configCache.keys().next().value
+      if (firstKey !== undefined) {
+        this.configCache.delete(firstKey)
+      }
+    }
+    this.configCache.set(key, value)
   }
 }

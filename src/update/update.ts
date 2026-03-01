@@ -15,6 +15,8 @@ import { isVersionGreater } from './version-compare';
  */
 export class Update {
   private updateCache: Map<string, CachedUpdateInfo> = new Map();
+  // 防止内存泄漏：缓存条目上限
+  private static readonly MAX_CACHE_SIZE = 50;
 
   constructor(private events: EventEmitter) {}
 
@@ -53,7 +55,7 @@ export class Update {
           currentVersion: options.currentVersion,
           isForceUpdate: false,
         };
-        this.updateCache.set(cacheKey, { result, timestamp: Date.now() });
+        this.setCacheEntry(cacheKey, { result, timestamp: Date.now() });
         return result;
       }
 
@@ -71,7 +73,7 @@ export class Update {
       };
 
       // 缓存结果
-      this.updateCache.set(cacheKey, { result, timestamp: Date.now() });
+      this.setCacheEntry(cacheKey, { result, timestamp: Date.now() });
 
       // 触发事件
       if (hasUpdate) {
@@ -222,5 +224,19 @@ export class Update {
   private isValidVersion(version: string): boolean {
     const versionRegex = /^\d+\.\d+\.\d+$/;
     return versionRegex.test(version);
+  }
+
+  /**
+   * 写入缓存，超出上限时清除最旧的条目
+   */
+  private setCacheEntry(key: string, value: CachedUpdateInfo): void {
+    if (this.updateCache.size >= Update.MAX_CACHE_SIZE) {
+      // Map 的迭代顺序是插入顺序，删除第一个（最旧）条目
+      const firstKey = this.updateCache.keys().next().value;
+      if (firstKey !== undefined) {
+        this.updateCache.delete(firstKey);
+      }
+    }
+    this.updateCache.set(key, value);
   }
 }

@@ -84,15 +84,6 @@ export class Membership {
       const supabase = getSupabaseClient();
       const config = configManager.getConfig();
 
-      // 检查是否已存在会员
-      const existing = await this.getUserMembership(userId);
-      if (existing) {
-        throw new MembershipError(
-          '会员已存在',
-          MEMBERSHIP_ERROR_CODES.ALREADY_EXISTS
-        );
-      }
-
       const trialDays = options?.trialDays ?? config.options?.trialDays ?? 7;
       const now = new Date();
       const trialEndsAt = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
@@ -102,7 +93,7 @@ export class Membership {
         .insert({
           user_id: userId,
           application_id: config.appId,
-          status: 'trial',
+          status: 'inactive',  // 数据库 CHECK 约束只允许 active/inactive/expired
           billing_cycle: options?.billingCycle || null,
           membership_plan_id: options?.membershipPlanId || null,
           started_at: now.toISOString(),
@@ -113,6 +104,13 @@ export class Membership {
         .single();
 
       if (error || !data) {
+        // Postgres 唯一约束违反错误码为 23505，表示会员已存在，直接依赖 DB 约束避免竞态条件
+        if (error?.code === '23505') {
+          throw new MembershipError(
+            '会员已存在',
+            MEMBERSHIP_ERROR_CODES.ALREADY_EXISTS
+          );
+        }
         throw new MembershipError(
           error?.message || '创建会员失败',
           MEMBERSHIP_ERROR_CODES.CREATE_FAILED,
@@ -193,7 +191,13 @@ export class Membership {
       const supabase = getSupabaseClient();
       const config = configManager.getConfig();
 
-      const updateData: any = {
+      const updateData: Partial<{
+        status: string;
+        expires_at: string;
+        billing_cycle: string;
+        metadata: Record<string, unknown>;
+        updated_at: string;
+      }> = {
         updated_at: new Date().toISOString(),
       };
 
@@ -244,7 +248,7 @@ export class Membership {
       const { data, error } = await supabase
         .from('user_app_memberships')
         .update({
-          status: 'cancelled',
+          status: 'inactive',  // 数据库 CHECK 约束不支持 'cancelled'，使用 'inactive' 代替
           cancelled_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })

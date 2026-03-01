@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient, type SupportedStorage } from '@supabase/supabase-js';
 import type { StorageAdapter } from './storage';
 
 let supabaseClient: SupabaseClient | null = null;
@@ -18,7 +18,7 @@ export function createSupabaseClient(
   if (!supabaseClient) {
     supabaseClient = createClient(url, anonKey, {
       auth: {
-        storage: storage as any,
+        storage: storage as SupportedStorage,
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false,

@@ -7,24 +7,37 @@ declare const globalThis: {
 
 /**
  * Web 存储适配器（使用 localStorage）
+ * 所有操作均包装在 try-catch 中，防止隐私模式或 SSR 环境下抛出未捕获异常
  */
 export class WebStorage {
   getItem(key: string): string | null {
-    if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
-      return globalThis.localStorage.getItem(key);
+    try {
+      if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
+        return globalThis.localStorage.getItem(key);
+      }
+    } catch {
+      // 隐私模式或 SSR 环境下 localStorage 可能抛出异常，静默忽略
     }
     return null;
   }
 
   setItem(key: string, value: string): void {
-    if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
-      globalThis.localStorage.setItem(key, value);
+    try {
+      if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
+        globalThis.localStorage.setItem(key, value);
+      }
+    } catch {
+      // 存储空间不足或隐私模式下可能抛出异常，静默忽略
     }
   }
 
   removeItem(key: string): void {
-    if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
-      globalThis.localStorage.removeItem(key);
+    try {
+      if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
+        globalThis.localStorage.removeItem(key);
+      }
+    } catch {
+      // 静默忽略
     }
   }
 }

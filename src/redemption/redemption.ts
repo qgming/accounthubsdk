@@ -1,5 +1,5 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { RedeemCodeResult, RedemptionCodeUse } from './types'
+import type { SupabaseClient, FunctionsHttpError } from '@supabase/supabase-js'
+import type { RedeemCodeResult, RedemptionCodeInfo, RedemptionCodeUse } from './types'
 import { RedemptionError, RedemptionErrorCode } from './errors'
 
 /**
@@ -12,6 +12,69 @@ export class RedemptionManager {
   constructor(supabase: SupabaseClient, appId: string) {
     this.supabase = supabase
     this.appId = appId
+  }
+
+  /**
+   * 解析 Edge Function 错误响应，返回 [errorCode, errorMessage]
+   * 将三处重复的错误解析逻辑统一提取到此私有方法
+   */
+  private async parseEdgeFunctionError(
+    error: FunctionsHttpError | Error,
+    defaultMessage: string,
+    defaultCode: RedemptionErrorCode
+  ): Promise<[RedemptionErrorCode, string]> {
+    let errorMessage = defaultMessage
+    let errorCode = defaultCode
+
+    // error.context 是 Response 对象，需要读取其响应体
+    const errorObj = error as FunctionsHttpError
+    if (errorObj.context && errorObj.context instanceof Response) {
+      try {
+        // 克隆 Response 以便读取（Response 只能读取一次）
+        const responseClone = errorObj.context.clone()
+        const errorData = await responseClone.json() as { error?: string }
+        if (errorData && errorData.error) {
+          errorMessage = errorData.error
+        }
+      } catch (e) {
+        // 如果无法解析 JSON，使用默认错误消息
+        console.error('Failed to parse error response:', e)
+      }
+    }
+
+    // 根据错误消息映射到对应的错误码
+    if (errorMessage.includes('不存在') || errorMessage.includes('应用不匹配')) {
+      errorCode = RedemptionErrorCode.CODE_NOT_FOUND
+      errorMessage = '兑换码不存在'
+    } else if (errorMessage.includes('已过期')) {
+      errorCode = RedemptionErrorCode.CODE_EXPIRED
+    } else if (errorMessage.includes('已用完')) {
+      errorCode = RedemptionErrorCode.CODE_EXHAUSTED
+    } else if (errorMessage.includes('已禁用')) {
+      errorCode = RedemptionErrorCode.CODE_DISABLED
+    } else if (errorMessage.includes('已经使用')) {
+      errorCode = RedemptionErrorCode.CODE_ALREADY_USED
+    }
+
+    return [errorCode, errorMessage]
+  }
+
+  /**
+   * 将 data.error 字符串映射到错误码（success=false 时使用）
+   */
+  private mapDataErrorToCode(errorMessage: string): RedemptionErrorCode {
+    if (errorMessage.includes('不存在') || errorMessage.includes('应用不匹配')) {
+      return RedemptionErrorCode.CODE_NOT_FOUND
+    } else if (errorMessage.includes('已过期')) {
+      return RedemptionErrorCode.CODE_EXPIRED
+    } else if (errorMessage.includes('已用完')) {
+      return RedemptionErrorCode.CODE_EXHAUSTED
+    } else if (errorMessage.includes('已禁用')) {
+      return RedemptionErrorCode.CODE_DISABLED
+    } else if (errorMessage.includes('已经使用')) {
+      return RedemptionErrorCode.CODE_ALREADY_USED
+    }
+    return RedemptionErrorCode.REDEEM_FAILED
   }
 
   /**
@@ -39,64 +102,24 @@ export class RedemptionManager {
         body: { code, applicationId: this.appId },
       })
 
-      // 处理错误响应
+      // 处理 HTTP 错误响应
       if (error) {
-        let errorMessage = '兑换失败'
-        let errorCode = RedemptionErrorCode.REDEEM_FAILED
-
-        // error.context 是一个 Response 对象，需要读取其响应体
-        const errorObj = error as any
-        if (errorObj.context && errorObj.context instanceof Response) {
-          try {
-            // 克隆 Response 以便读取（Response 只能读取一次）
-            const responseClone = errorObj.context.clone()
-            const errorData = await responseClone.json()
-
-            if (errorData && errorData.error) {
-              errorMessage = errorData.error
-            }
-          } catch (e) {
-            // 如果无法解析 JSON，使用默认错误消息
-            console.error('Failed to parse error response:', e)
-          }
-        }
-
-        // 根据错误消息判断错误类型
-        if (errorMessage.includes('不存在') || errorMessage.includes('应用不匹配')) {
-          errorCode = RedemptionErrorCode.CODE_NOT_FOUND
-          errorMessage = '兑换码不存在'
-        } else if (errorMessage.includes('已过期')) {
-          errorCode = RedemptionErrorCode.CODE_EXPIRED
-        } else if (errorMessage.includes('已用完')) {
-          errorCode = RedemptionErrorCode.CODE_EXHAUSTED
-        } else if (errorMessage.includes('已禁用')) {
-          errorCode = RedemptionErrorCode.CODE_DISABLED
-        } else if (errorMessage.includes('已经使用')) {
-          errorCode = RedemptionErrorCode.CODE_ALREADY_USED
-        }
-
+        const [errorCode, errorMessage] = await this.parseEdgeFunctionError(
+          error,
+          '兑换失败',
+          RedemptionErrorCode.REDEEM_FAILED
+        )
         throw new RedemptionError(errorCode, errorMessage, error)
       }
 
-      // 检查是否有数据返回
+      // 处理业务逻辑错误（success=false）
       if (data && !data.success) {
-        // 根据错误消息判断错误类型
         const errorMessage = data.error || '兑换失败'
-        let errorCode = RedemptionErrorCode.REDEEM_FAILED
-
-        if (errorMessage.includes('不存在') || errorMessage.includes('应用不匹配')) {
-          errorCode = RedemptionErrorCode.CODE_NOT_FOUND
-        } else if (errorMessage.includes('已过期')) {
-          errorCode = RedemptionErrorCode.CODE_EXPIRED
-        } else if (errorMessage.includes('已用完')) {
-          errorCode = RedemptionErrorCode.CODE_EXHAUSTED
-        } else if (errorMessage.includes('已禁用')) {
-          errorCode = RedemptionErrorCode.CODE_DISABLED
-        } else if (errorMessage.includes('已经使用')) {
-          errorCode = RedemptionErrorCode.CODE_ALREADY_USED
-        }
-
-        throw new RedemptionError(errorCode, errorMessage.includes('应用不匹配') ? '兑换码不存在' : errorMessage)
+        const errorCode = this.mapDataErrorToCode(errorMessage)
+        throw new RedemptionError(
+          errorCode,
+          errorMessage.includes('应用不匹配') ? '兑换码不存在' : errorMessage
+        )
       }
 
       return {
@@ -130,7 +153,7 @@ export class RedemptionManager {
    * @param code 兑换码
    * @returns 兑换码信息
    */
-  async validateCode(code: string): Promise<any> {
+  async validateCode(code: string): Promise<RedemptionCodeInfo> {
     try {
       // 检查用户是否已登录并刷新session
       const {
@@ -150,67 +173,28 @@ export class RedemptionManager {
         body: { code, applicationId: this.appId, validateOnly: true },
       })
 
-      // 处理错误响应
+      // 处理 HTTP 错误响应
       if (error) {
-        let errorMessage = '验证失败'
-        let errorCode = RedemptionErrorCode.NETWORK_ERROR
-
-        // error.context 是一个 Response 对象，需要读取其响应体
-        const errorObj = error as any
-        if (errorObj.context && errorObj.context instanceof Response) {
-          try {
-            // 克隆 Response 以便读取（Response 只能读取一次）
-            const responseClone = errorObj.context.clone()
-            const errorData = await responseClone.json()
-
-            if (errorData && errorData.error) {
-              errorMessage = errorData.error
-            }
-          } catch (e) {
-            // 如果无法解析 JSON，使用默认错误消息
-            console.error('Failed to parse error response:', e)
-          }
-        }
-
-        // 根据错误消息判断错误类型
-        if (errorMessage.includes('不存在') || errorMessage.includes('应用不匹配')) {
-          errorCode = RedemptionErrorCode.CODE_NOT_FOUND
-          errorMessage = '兑换码不存在'
-        } else if (errorMessage.includes('已过期')) {
-          errorCode = RedemptionErrorCode.CODE_EXPIRED
-        } else if (errorMessage.includes('已用完')) {
-          errorCode = RedemptionErrorCode.CODE_EXHAUSTED
-        } else if (errorMessage.includes('已禁用')) {
-          errorCode = RedemptionErrorCode.CODE_DISABLED
-        } else if (errorMessage.includes('已经使用')) {
-          errorCode = RedemptionErrorCode.CODE_ALREADY_USED
-        }
-
+        const [errorCode, errorMessage] = await this.parseEdgeFunctionError(
+          error,
+          '验证失败',
+          RedemptionErrorCode.NETWORK_ERROR
+        )
         throw new RedemptionError(errorCode, errorMessage, error)
       }
 
-      // 检查是否有数据返回
+      // 处理业务逻辑错误（success=false）
       if (data && !data.success) {
         const errorMessage = data.error || '验证失败'
-        let errorCode = RedemptionErrorCode.REDEEM_FAILED
-
-        if (errorMessage.includes('不存在') || errorMessage.includes('应用不匹配')) {
-          errorCode = RedemptionErrorCode.CODE_NOT_FOUND
-        } else if (errorMessage.includes('已过期')) {
-          errorCode = RedemptionErrorCode.CODE_EXPIRED
-        } else if (errorMessage.includes('已用完')) {
-          errorCode = RedemptionErrorCode.CODE_EXHAUSTED
-        } else if (errorMessage.includes('已禁用')) {
-          errorCode = RedemptionErrorCode.CODE_DISABLED
-        } else if (errorMessage.includes('已经使用')) {
-          errorCode = RedemptionErrorCode.CODE_ALREADY_USED
-        }
-
-        throw new RedemptionError(errorCode, errorMessage.includes('应用不匹配') ? '兑换码不存在' : errorMessage)
+        const errorCode = this.mapDataErrorToCode(errorMessage)
+        throw new RedemptionError(
+          errorCode,
+          errorMessage.includes('应用不匹配') ? '兑换码不存在' : errorMessage
+        )
       }
 
       // 返回兑换码信息
-      return data.data
+      return data.data as RedemptionCodeInfo
     } catch (error) {
       if (error instanceof RedemptionError) {
         throw error
@@ -253,14 +237,14 @@ export class RedemptionManager {
         throw new Error(error.message)
       }
 
-      return (data || []).map((item: any) => ({
-        id: item.id,
-        redemptionCodeId: item.redemption_code_id,
-        userId: item.user_id,
-        membershipId: item.membership_id,
-        redeemedAt: item.redeemed_at,
-        ipAddress: item.ip_address,
-        userAgent: item.user_agent,
+      return (data || []).map((item: Record<string, unknown>) => ({
+        id: item.id as string,
+        redemptionCodeId: item.redemption_code_id as string,
+        userId: item.user_id as string,
+        membershipId: item.membership_id as string | null,
+        redeemedAt: item.redeemed_at as string,
+        ipAddress: item.ip_address as string | null,
+        userAgent: item.user_agent as string | null,
       }))
     } catch (error) {
       if (error instanceof RedemptionError) {

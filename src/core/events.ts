@@ -15,6 +15,9 @@ export type EventType =
   | 'update:available'
   | 'update:downloaded';
 
+import type { User } from './types';
+import type { UserMembership } from './types';
+
 /**
  * 事件负载类型
  */
@@ -22,10 +25,10 @@ export type EventPayload = {
   'auth:signin': { userId: string };
   'auth:signup': { userId: string };
   'auth:signout': Record<string, never>;
-  'auth:statechange': { user: any | null };
-  'membership:created': { membership: any };
-  'membership:updated': { membership: any };
-  'membership:cancelled': { membership: any };
+  'auth:statechange': { user: User | null };
+  'membership:created': { membership: UserMembership };
+  'membership:updated': { membership: UserMembership };
+  'membership:cancelled': { membership: UserMembership };
   'payment:created': { paymentId: string };
   'payment:completed': { paymentId: string };
   'payment:failed': { paymentId: string; error: string };
