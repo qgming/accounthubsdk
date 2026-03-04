@@ -49,6 +49,12 @@ const config = await sdk.config.getConfig("announcement");
 // 检查更新
 const update = await sdk.update.checkUpdate({ currentVersion: "1.0.0" });
 
+// AI 对话（需要部署 Supabase Edge Function: ai-proxy）
+const ai = await sdk.ai.chat("getme-assistant", {
+  messages: [{ role: "user", content: "你好，请用一句话介绍你自己。" }],
+});
+console.log(ai.choices[0]?.message?.content);
+
 // 兑换码
 await sdk.redemption.redeemCode("XXXX-XXXX-XXXX-XXXX");
 ```
@@ -65,6 +71,7 @@ await sdk.redemption.redeemCode("XXXX-XXXX-XXXX-XXXX");
 | [api-payment.md](docs/api-payment.md) | 支付模块：套餐查询、会话创建、状态验证、渠道配置 |
 | [api-config.md](docs/api-config.md) | 配置模块：读取、端到端解密、缓存管理 |
 | [api-update.md](docs/api-update.md) | 更新模块：版本检查、平台检测、版本比较工具 |
+| [api-ai.md](docs/api-ai.md) | AI 模块：对话（非流式/流式）、语音转文字、图片生成 |
 | [api-redemption.md](docs/api-redemption.md) | 兑换码模块：验证、兑换、历史记录 |
 
 ---
@@ -81,6 +88,14 @@ await sdk.redemption.redeemCode("XXXX-XXXX-XXXX-XXXX");
 ---
 
 ## 更新日志
+
+### v1.0.3 (2026-03-04)
+
+- ✨ 新增 `AI` 模块：`chat` / `chatStream` / `speechToText` / `generateImage`
+- ✨ Auth 新增 `trackActive()`：静默上报最近在线时间
+- 🔧 顶层导出补齐 AI 相关类型与错误码
+
+---
 
 ### v1.0.2 (2026-03-01)
 

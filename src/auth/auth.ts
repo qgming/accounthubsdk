@@ -444,6 +444,25 @@ export class Auth {
   }
 
   /**
+   * 上报用户活跃状态，更新最近在线时间
+   * 建议在应用启动、页面切换等时机调用，失败时静默处理不抛错
+   */
+  async trackActive(): Promise<void> {
+    try {
+      const supabase = getSupabaseClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      await supabase
+        .from('users')
+        .update({ last_active_at: new Date().toISOString() })
+        .eq('id', user.id)
+    } catch {
+      // 静默处理，上报失败不影响业务
+    }
+  }
+
+  /**
    * 检查用户是否被封禁
    * @param userId 用户 ID
    * @returns 是否被封禁

@@ -7,6 +7,7 @@ import { Payment } from './payment';
 import { Update } from './update';
 import { RedemptionManager } from './redemption/redemption';
 import { Config } from './config';
+import { AI } from './ai';
 import type { AccountHubConfig } from './core/types';
 
 /**
@@ -21,6 +22,7 @@ export class AccountHub {
   public readonly update: Update;
   public readonly redemption: RedemptionManager;
   public readonly config: Config;
+  public readonly ai: AI;
   public readonly events: EventEmitter;
 
   private constructor(config: AccountHubConfig) {
@@ -43,6 +45,7 @@ export class AccountHub {
     this.update = new Update(this.events);
     this.redemption = new RedemptionManager(supabase, config.appId);
     this.config = new Config();
+    this.ai = new AI();
   }
 
   /**

@@ -86,3 +86,22 @@ export type { User } from './core/types';
 // 事件系统
 export type { EventType, EventPayload } from './core/events';
 export { EventEmitter } from './core/events';
+
+// AI 模块
+export { AI } from './ai';
+export { AIError, AI_ERROR_CODES } from './ai/errors';
+export type { AiErrorCode } from './ai/errors';
+export type {
+  MessageRole,
+  MessageContent,
+  ChatMessage,
+  ToolDefinition,
+  ToolCall,
+  ChatOptions,
+  ChatCompletion,
+  ChatStreamChunk,
+  STTOptions,
+  STTResult,
+  ImageGenOptions,
+  ImageGenResult,
+} from './ai/types';

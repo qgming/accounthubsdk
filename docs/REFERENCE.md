@@ -133,6 +133,7 @@ interface StorageAdapter {
 | `getCurrentUser` | `()` | `Promise<User \| null>` |
 | `updatePassword` | `(newPassword)` | `Promise<void>` |
 | `updateProfile` | `({ fullName?, avatarUrl? })` | `Promise<void>` |
+| `trackActive` | `()` | `Promise<void>` |
 | `onAuthStateChange` | `(callback: (user: User \| null) => void)` | `() => void`（取消订阅函数） |
 
 ### Membership
@@ -177,6 +178,15 @@ interface StorageAdapter {
 | `checkUpdate` | `({ currentVersion, cacheDuration? })` | `Promise<UpdateResult>` |
 | `clearCache` | `()` | `void` |
 
+### AI
+
+| 方法 | 签名 | 返回 |
+|------|------|------|
+| `chat` | `(modelKey, options: ChatOptions)` | `Promise<ChatCompletion>` |
+| `chatStream` | `(modelKey, options: ChatOptions)` | `AsyncGenerator<ChatStreamChunk>` |
+| `speechToText` | `(modelKey, audio: Blob, options?: STTOptions)` | `Promise<STTResult>` |
+| `generateImage` | `(modelKey, prompt: string, options?: ImageGenOptions)` | `Promise<ImageGenResult>` |
+
 ### Redemption
 
 | 方法 | 签名 | 返回 |
@@ -195,6 +205,7 @@ import {
   MembershipError, MEMBERSHIP_ERROR_CODES,
   PaymentError,    PAYMENT_ERROR_CODES,
   UpdateError,     UPDATE_ERROR_CODES,
+  AIError,         AI_ERROR_CODES,
   RedemptionError, RedemptionErrorCode,
   ConfigError,     CONFIG_ERROR_CODES,
 } from "@accounthub/sdk";
@@ -215,6 +226,7 @@ try {
 | Membership | `MembershipError` | `MEMBERSHIP_ERROR_CODES` |
 | Payment | `PaymentError` | `PAYMENT_ERROR_CODES` |
 | Update | `UpdateError` | `UPDATE_ERROR_CODES` |
+| AI | `AIError` | `AI_ERROR_CODES` |
 | Redemption | `RedemptionError` | `RedemptionErrorCode`（enum） |
 | Config | `ConfigError` | `CONFIG_ERROR_CODES` |
 
@@ -251,6 +263,22 @@ import {
   compareVersions,     // (v1: string, v2: string) => -1 | 0 | 1
   isVersionGreater,    // (v1: string, v2: string) => boolean
   detectPlatform,      // () => Platform
+} from "@accounthub/sdk";
+```
+
+---
+
+## AI 模块导出
+
+```typescript
+import {
+  AI,
+  AIError,
+  AI_ERROR_CODES,
+  type ChatMessage,
+  type ChatOptions,
+  type ChatCompletion,
+  type ChatStreamChunk,
 } from "@accounthub/sdk";
 ```
 

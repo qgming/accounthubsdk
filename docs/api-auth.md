@@ -101,6 +101,23 @@ await accountHub.auth.updateProfile({
 
 ---
 
+### `trackActive()`
+
+上报用户活跃状态，更新最近在线时间。
+
+建议在应用启动、页面切换、定时心跳等时机调用；失败时**静默处理**不抛错。
+
+```typescript
+// 可不 await，上报失败不影响业务
+accountHub.auth.trackActive();
+```
+
+**备注：**
+- 需要数据库表 `users` 存在字段 `last_active_at`
+- 需要 RLS/权限允许当前登录用户更新自身记录
+
+---
+
 ### `onAuthStateChange(callback)`
 
 监听认证状态变化。返回取消订阅函数，组件卸载时必须调用。
