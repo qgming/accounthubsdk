@@ -78,7 +78,10 @@ export { RedemptionError, RedemptionErrorCode, REDEMPTION_ERROR_MESSAGES } from 
 // 配置模块
 export { Config } from './config';
 export { ConfigError, CONFIG_ERROR_CODES } from './config/errors';
-export type { AppConfigData, AppConfigType, GetConfigOptions } from './config/types';
+export type { AppConfigData, AppConfigType, GetConfigOptions, ConfigUpdateOptions } from './config/types';
+
+// 配置管理工具类型（可选导出）
+export { TimeoutError, isTimeoutError } from './config/timeout-controller';
 
 // 核心类型
 export type { User } from './core/types';

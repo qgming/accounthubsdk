@@ -20,11 +20,32 @@ const accountHub = initializeAccountHub({
     enablePasswordReset?: boolean,    // 默认 true
     defaultReturnUrl?: string,        // 移动端支付回调必填
     storage?: StorageAdapter,         // React Native 自定义存储
+    configUpdateOptions?: ConfigUpdateOptions,  // ✨ v1.0.4 新增：配置更新策略
   }
 });
 ```
 
 `initializeAccountHub` 返回单例，重复调用返回同一实例。
+
+**v1.0.4 配置更新策略**：
+
+```typescript
+configUpdateOptions: {
+  offlineFirst: true,                      // 离线优先，默认 true
+  updateThrottleMs: 24 * 60 * 60 * 1000,  // 更新节流时间，默认 24h
+  backgroundUpdateTimeoutMs: 1200,         // 后台更新超时，默认 1.2s
+  manualUpdateTimeoutMs: 10000,            // 手动更新超时，默认 10s
+  retryBackoff: {
+    initialDelayMs: 1000,                  // 初始延迟，默认 1s
+    maxDelayMs: 60000,                     // 最大延迟，默认 60s
+    multiplier: 2,                         // 倍数，默认 2
+    maxRetries: 5,                         // 最大重试次数，默认 5
+  },
+  useWorkerForDecryption: true,            // 使用 Worker 解密，默认 true
+  persistentCachePrefix: 'accounthub_config_',  // 缓存前缀
+  storeDecryptedData: true,                // 存储解密后的数据，默认 true
+}
+```
 
 ---
 
@@ -81,6 +102,42 @@ interface AppConfig {
   is_active: boolean | null;
   created_at: string | null;
   updated_at: string | null;
+}
+
+// ✨ v1.0.4 新增：配置获取选项
+interface GetConfigOptions {
+  useCache?: boolean;          // 是否使用缓存，默认 true
+  cacheDuration?: number;      // 内存缓存时长（毫秒），默认 5 分钟
+  forceRefresh?: boolean;      // 强制刷新，忽略节流，默认 false
+  fallbackValue?: AppConfig;   // 降级默认值
+  timeout?: number;            // 自定义超时（覆盖默认值）
+}
+
+// ✨ v1.0.4 新增：缓存元数据
+interface CacheMetadata {
+  configKey: string;
+  timestamp: number;              // 缓存时间戳
+  lastUpdateAttempt: number;      // 最后更新尝试时间
+  updateAttempts: number;         // 更新尝试次数
+  lastSuccessfulUpdate: number;   // 最后成功更新时间
+  version: string;                // 缓存版本
+}
+
+// ✨ v1.0.4 新增：配置更新策略
+interface ConfigUpdateOptions {
+  offlineFirst?: boolean;              // 离线优先，默认 true
+  updateThrottleMs?: number;           // 更新节流时间，默认 24h
+  backgroundUpdateTimeoutMs?: number;  // 后台更新超时，默认 1200ms
+  manualUpdateTimeoutMs?: number;      // 手动更新超时，默认 10000ms
+  retryBackoff?: {
+    initialDelayMs?: number;           // 初始延迟，默认 1000ms
+    maxDelayMs?: number;               // 最大延迟，默认 60000ms
+    multiplier?: number;               // 倍数，默认 2
+    maxRetries?: number;               // 最大重试次数，默认 5
+  };
+  useWorkerForDecryption?: boolean;    // 使用 Worker 解密，默认 true
+  persistentCachePrefix?: string;      // 持久化缓存前缀
+  storeDecryptedData?: boolean;        // 存储解密后的数据，默认 true
 }
 
 // 支付渠道
@@ -165,6 +222,9 @@ interface StorageAdapter {
 | 方法 | 签名 | 返回 |
 |------|------|------|
 | `getConfig` | `(key, options?)` | `Promise<AppConfig \| null>` |
+| `getConfigAsync` ✨ v1.0.4 | `(key, options?)` | `Promise<AppConfig \| null>` |
+| `batchGetConfigsAsync` ✨ v1.0.4 | `(keys: string[], options?)` | `Promise<AppConfig[]>` |
+| `getCacheInfo` ✨ v1.0.4 | `(key)` | `Promise<{ hasCache: boolean; metadata: CacheMetadata \| null; dataSize: number }>` |
 | `getConfigValue` | `(key, field, defaultValue?)` | `Promise<unknown>` |
 | `getConfigData` | `(key)` | `Promise<Record<string, unknown> \| null>` |
 | `getConfigs` | `(keys: string[])` | `Promise<AppConfig[]>` |
@@ -208,6 +268,7 @@ import {
   AIError,         AI_ERROR_CODES,
   RedemptionError, RedemptionErrorCode,
   ConfigError,     CONFIG_ERROR_CODES,
+  TimeoutError,    isTimeoutError,  // ✨ v1.0.4 新增
 } from "@accounthub/sdk";
 
 // 通用错误捕获模式
@@ -216,6 +277,15 @@ try {
 } catch (error) {
   if (error instanceof AuthError) {
     console.error(error.code, error.message);
+  }
+}
+
+// v1.0.4 超时错误处理
+try {
+  const config = await accountHub.config.getConfig("announcement");
+} catch (error) {
+  if (isTimeoutError(error)) {
+    console.error("配置获取超时", error.timeoutMs);
   }
 }
 ```

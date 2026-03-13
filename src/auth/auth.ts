@@ -2,6 +2,7 @@ import { getSupabaseClient } from '../core/client';
 import { configManager } from '../core/config';
 import type { EventEmitter } from '../core/events';
 import type { User } from '../core/types';
+import type { Membership } from '../membership/membership';
 import type {
   SignUpData,
   SignInData,
@@ -16,7 +17,10 @@ import { AuthError, AUTH_ERROR_CODES } from './errors';
  * 认证模块
  */
 export class Auth {
-  constructor(private events: EventEmitter) {}
+  constructor(
+    private events: EventEmitter,
+    private membership?: Membership  // 可选注入 Membership 实例
+  ) {}
 
   /**
    * 用户注册
@@ -121,6 +125,11 @@ export class Auth {
 
       this.events.emit('auth:signin', { userId: authData.user.id });
 
+      // 非阻塞预加载用户数据
+      this.preloadUserData(authData.user.id).catch(error => {
+        console.warn('[Auth] 预加载用户数据失败:', error);
+      });
+
       return {
         user: authData.user,
         session: authData.session,
@@ -132,6 +141,16 @@ export class Auth {
         AUTH_ERROR_CODES.SIGNIN_FAILED,
         error
       );
+    }
+  }
+
+  /**
+   * 预加载用户数据（登录后自动调用）
+   */
+  private async preloadUserData(userId: string): Promise<void> {
+    // 如果注入了 Membership 实例，预加载会员信息
+    if (this.membership) {
+      await this.membership.preloadMembership(userId);
     }
   }
 

@@ -39,12 +39,12 @@ export class AccountHub {
     this.events = new EventEmitter();
 
     // 创建模块实例
-    this.auth = new Auth(this.events);
     this.membership = new Membership(this.events);
+    this.auth = new Auth(this.events, this.membership); // 注入 Membership 实例
     this.payment = new Payment(this.events);
     this.update = new Update(this.events);
     this.redemption = new RedemptionManager(supabase, config.appId);
-    this.config = new Config();
+    this.config = new Config(storage, config.options?.configUpdateOptions ?? config.options?.configUpdate); // 传递配置更新选项
     this.ai = new AI();
   }
 

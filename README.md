@@ -89,6 +89,48 @@ await sdk.redemption.redeemCode("XXXX-XXXX-XXXX-XXXX");
 
 ## 更新日志
 
+### v1.0.4 (2026-03-13)
+
+**配置模块性能与离线体验全面升级**
+
+**🚀 离线优先架构**
+- 新增 `PersistentCacheManager`：持久化缓存管理器，缓存永不过期
+- 新增 `UpdateScheduler`：智能后台更新调度，支持节流和指数退避策略
+- 新增 `ConfigUpdateOptions`：灵活的配置更新策略（离线优先、节流时间、超时控制、重试策略）
+- 默认策略：优先返回缓存，后台静默更新（24h 节流，1.2s 超时）
+
+**⚡ 异步解密优化**
+- 新增 `AsyncCrypto`：支持 Web Worker 异步解密（浏览器）和 setTimeout 分片（React Native）
+- 新增 `getConfigAsync()`：完全异步的配置获取方法
+- 新增 `batchGetConfigsAsync()`：批量异步获取配置
+- 密钥派生和解密操作不再阻塞主线程
+
+**⏱️ 超时控制**
+- 新增 `TimeoutController`：统一的超时管理工具
+- 新增 `TimeoutError` 类型和 `isTimeoutError()` 判断函数
+- 支持手动更新和后台更新的独立超时配置
+
+**📊 缓存元数据**
+- 缓存元数据包含：时间戳、更新尝试次数、最后成功更新时间、版本号
+- 支持 `getCacheInfo()` 查询缓存状态
+- LRU 策略：内存缓存最多 100 条，持久化缓存无限制
+
+**🔧 API 增强**
+- `getConfig()` 新增选项：`forceRefresh`（强制刷新）、`fallbackValue`（降级默认值）、`timeout`（自定义超时）
+- `Config` 构造函数支持 `ConfigUpdateOptions` 配置更新策略
+- 导出 `TimeoutError` 和 `isTimeoutError` 供外部使用
+
+**⚠️ 破坏性变更**
+
+| 变更项 | v1.0.3 | v1.0.4 |
+|--------|--------|--------|
+| `Config` 构造函数 | `new Config(storage)` | `new Config(storage, updateOptions?)` |
+| 默认行为 | 每次请求都查询数据库 | 优先返回缓存，后台更新 |
+
+迁移：如需保持旧行为，传入 `{ offlineFirst: false }` 配置。
+
+---
+
 ### v1.0.3 (2026-03-04)
 
 - ✨ 新增 `AI` 模块：`chat` / `chatStream` / `speechToText` / `generateImage`

@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../core/client';
 import { configManager } from '../core/config';
+import { queryWithTimeout } from '../config/timeout-controller';
 import type { EventEmitter } from '../core/events';
 import type {
   CheckoutSession,
@@ -12,26 +13,57 @@ import type {
 import { PaymentError, PAYMENT_ERROR_CODES } from './errors';
 
 /**
+ * 缓存条目
+ */
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+/**
  * 支付模块
  */
 export class Payment {
+  private plansCache: Map<string, CacheEntry<MembershipPlan[]>> = new Map();
+  private readonly PLANS_CACHE_DURATION = 10 * 60 * 1000; // 10分钟
+  private static readonly DEFAULT_TIMEOUT = 5000; // 5秒
+
   constructor(private events: EventEmitter) {}
 
   /**
    * 获取会员套餐列表
+   * @param options 选项
    * @returns 会员套餐列表
    */
-  async getMembershipPlans(): Promise<MembershipPlan[]> {
+  async getMembershipPlans(options?: { useCache?: boolean }): Promise<MembershipPlan[]> {
+    const useCache = options?.useCache ?? true;
+
+    // 检查缓存
+    if (useCache) {
+      const cached = this.plansCache.get('all');
+      if (cached && Date.now() - cached.timestamp < this.PLANS_CACHE_DURATION) {
+        return cached.data;
+      }
+    }
+
+    // 从数据库获取（带超时）
     try {
       const supabase = getSupabaseClient();
       const config = configManager.getConfig();
 
-      const { data, error } = await supabase
-        .from('membership_plans')
-        .select('*')
-        .eq('application_id', config.appId)
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
+      const result = await queryWithTimeout(
+        async () => {
+          return await supabase
+            .from('membership_plans')
+            .select('*')
+            .eq('application_id', config.appId)
+            .eq('is_active', true)
+            .order('sort_order', { ascending: true })
+        },
+        Payment.DEFAULT_TIMEOUT
+      );
+
+      const { data, error } = result as any;
 
       if (error) {
         throw new PaymentError(
@@ -41,7 +73,12 @@ export class Payment {
         );
       }
 
-      return data || [];
+      const plans = data || [];
+
+      // 写入缓存
+      this.plansCache.set('all', { data: plans, timestamp: Date.now() });
+
+      return plans;
     } catch (error) {
       if (error instanceof PaymentError) throw error;
       throw new PaymentError(

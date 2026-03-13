@@ -1,0 +1,218 @@
+# AccountHub SDK - AI 编程辅助规则
+
+## 项目概述
+
+AccountHub SDK 是一个企业级多应用账户管理 SDK，提供用户认证、会员管理、支付集成、版本更新、兑换码和应用配置功能。
+
+**当前版本**: v1.0.4
+**技术栈**: TypeScript, Supabase, @noble/ciphers, @noble/hashes
+**构建工具**: tsup
+
+---
+
+## v1.0.4 重要变更（2026-03-13）
+
+### 配置模块全面升级
+
+1. **离线优先架构**
+   - 新增 `PersistentCacheManager`：持久化缓存管理器
+   - 新增 `UpdateScheduler`：智能后台更新调度
+   - 默认策略：优先返回缓存，后台静默更新（24h 节流）
+
+2. **异步解密优化**
+   - 新增 `AsyncCrypto`：支持 Web Worker（浏览器）和 setTimeout 分片（React Native）
+   - 新增 `getConfigAsync()` 和 `batchGetConfigsAsync()` 方法
+   - 密钥派生和解密不再阻塞主线程
+
+3. **超时控制**
+   - 新增 `TimeoutController`：统一超时管理
+   - 新增 `TimeoutError` 类型和 `isTimeoutError()` 判断函数
+   - 支持独立的手动更新和后台更新超时配置
+
+4. **新增 API**
+   - `getCacheInfo(configKey)` - 查询缓存状态
+   - `getConfigAsync(configKey, options?)` - 异步获取配置
+   - `batchGetConfigsAsync(configKeys, options?)` - 批量异步获取
+   - `GetConfigOptions` 新增 `forceRefresh`、`fallbackValue`、`timeout` 选项
+
+5. **破坏性变更**
+   - `Config` 构造函数：`new Config(storage)` → `new Config(storage, updateOptions?)`
+   - 默认行为：从"每次查询数据库"改为"优先返回缓存，后台更新"
+   - 迁移：如需保持旧行为，传入 `{ offlineFirst: false }`
+
+---
+
+## 项目结构
+
+```
+src/
+├── index.ts                    # 主导出文件
+├── accounthub.ts              # AccountHub 主类
+├── core/                      # 核心功能
+│   ├── client.ts             # Supabase 客户端
+│   ├── config.ts             # 配置管理器
+│   ├── crypto.ts             # 同步加密工具
+│   ├── crypto-async.ts       # 异步加密工具 ✨ v1.0.4
+│   ├── events.ts             # 事件系统
+│   ├── storage.ts            # 存储抽象层
+│   └── types.ts              # 核心类型
+├── auth/                      # 认证模块
+├── membership/                # 会员模块
+├── payment/                   # 支付模块
+├── config/                    # 配置模块 ✨ v1.0.4 重构
+│   ├── config.ts             # 配置主类
+│   ├── cache-manager.ts      # 持久化缓存管理器 ✨ 新增
+│   ├── update-scheduler.ts   # 更新调度器 ✨ 新增
+│   ├── timeout-controller.ts # 超时控制器 ✨ 新增
+│   ├── types.ts              # 配置类型
+│   └── errors.ts             # 配置错误
+├── update/                    # 更新模块
+├── ai/                        # AI 模块
+└── redemption/                # 兑换码模块
+
+docs/
+├── REFERENCE.md              # AI 编码速查手册
+├── api-auth.md               # 认证 API 文档
+├── api-membership.md         # 会员 API 文档
+├── api-payment.md            # 支付 API 文档
+├── api-config.md             # 配置 API 文档 ✨ v1.0.4 更新
+├── api-update.md             # 更新 API 文档
+├── api-ai.md                 # AI API 文档
+└── api-redemption.md         # 兑换码 API 文档
+```
+
+---
+
+## 编码规范
+
+### TypeScript
+
+1. **严格类型**：避免使用 `any`，使用精确的类型定义
+2. **错误处理**：所有模块使用自定义错误类（如 `ConfigError`、`AuthError`）
+3. **异步操作**：优先使用 `async/await`，避免回调地狱
+4. **导出规范**：在 `src/index.ts` 中统一导出所有公共 API
+
+### 配置模块特殊规范（v1.0.4）
+
+1. **缓存策略**
+   - 内存缓存：最多 100 条，LRU 淘汰
+   - 持久化缓存：无限制，永不过期
+   - 后台更新：24h 节流，1.2s 超时，指数退避重试
+
+2. **解密策略**
+   - 浏览器：优先使用 Web Worker 异步解密
+   - React Native：使用 setTimeout 分片解密
+   - 降级：同步解密（阻塞主线程）
+
+3. **超时控制**
+   - 手动更新：默认 10s 超时
+   - 后台更新：默认 1.2s 超时
+   - 可通过 `ConfigUpdateOptions` 自定义
+
+### 加密规范
+
+- **算法**：AES-256-GCM + PBKDF2-SHA256（10 万次迭代）
+- **格式**：`{ _enc: "enc:v1:<hex(nonce)>.<hex(ciphertext+authTag)>" }`
+- **密钥派生**：`appKey + appId` → PBKDF2 → 32 字节密钥
+- **缓存**：派生密钥在实例生命周期内缓存
+
+---
+
+## 常用命令
+
+```bash
+# 开发
+npm run dev          # 监听模式构建
+
+# 构建
+npm run build        # 生产构建（CJS + ESM + .d.ts）
+
+# 类型检查
+npm run type-check   # TypeScript 类型检查
+
+# 发布
+npm run prepublishOnly  # 发布前自动构建
+npm publish --access public
+```
+
+---
+
+## 关键 API 速查
+
+### 初始化（v1.0.4）
+
+```typescript
+import { initializeAccountHub } from "@accounthub/sdk";
+
+const sdk = initializeAccountHub({
+  supabaseUrl: "...",
+  supabaseAnonKey: "...",
+  appId: "...",
+  appKey: "...",
+  options: {
+    configUpdateOptions: {  // ✨ v1.0.4 新增
+      offlineFirst: true,
+      updateThrottleMs: 24 * 60 * 60 * 1000,
+      useWorkerForDecryption: true,
+    }
+  }
+});
+```
+
+### 配置模块（v1.0.4）
+
+```typescript
+// 离线优先（默认）
+const config = await sdk.config.getConfig("announcement");
+
+// 强制刷新
+const config = await sdk.config.getConfig("announcement", {
+  forceRefresh: true,
+});
+
+// 异步解密（不阻塞 UI）
+const config = await sdk.config.getConfigAsync("llm_config");
+
+// 批量异步获取
+const configs = await sdk.config.batchGetConfigsAsync([
+  "announcement", "llm_config", "api_config"
+]);
+
+// 查询缓存状态
+const info = await sdk.config.getCacheInfo("announcement");
+
+// 降级默认值
+const config = await sdk.config.getConfig("announcement", {
+  fallbackValue: { /* 默认配置 */ },
+});
+```
+
+---
+
+## 文档优先级
+
+修改代码时，必须同步更新以下文档：
+
+1. **README.md** - 更新日志、快速开始
+2. **docs/REFERENCE.md** - API 速查表、类型定义
+3. **docs/api-*.md** - 对应模块的详细文档
+4. **package.json** - 版本号
+
+---
+
+## 注意事项
+
+1. **破坏性变更**：必须在 README.md 的更新日志中明确标注
+2. **类型导出**：所有公共类型必须在 `src/index.ts` 中导出
+3. **错误处理**：新增错误码必须在对应的 `errors.ts` 中定义
+4. **缓存管理**：修改缓存逻辑时注意 LRU 策略和内存泄漏
+5. **异步操作**：涉及加密解密的操作优先使用异步方法
+
+---
+
+## 相关链接
+
+- [AccountHub 管理后台](https://github.com/qgming/accounthub)
+- [Supabase 文档](https://supabase.com/docs)
+- [@noble/ciphers](https://github.com/paulmillr/noble-ciphers)
+- [@noble/hashes](https://github.com/paulmillr/noble-hashes)

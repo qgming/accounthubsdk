@@ -1,4 +1,5 @@
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { ConfigUpdateOptions } from '../config/types';
 
 // 导出 Supabase User 类型
 export type User = SupabaseUser;
@@ -54,5 +55,8 @@ export interface AccountHubConfig {
     enablePasswordReset?: boolean;   // 默认: true
     storage?: StorageAdapter;        // 默认: WebStorage (localStorage)
     defaultReturnUrl?: string;       // 默认支付回调 URL（移动端必填）
+    configUpdateOptions?: ConfigUpdateOptions; // 配置更新选项（推荐）
+    configUpdate?: ConfigUpdateOptions; // 配置更新选项（兼容旧命名）
   };
 }
+
