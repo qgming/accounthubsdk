@@ -46,6 +46,7 @@ export interface PaymentRecord {
   created_at: string;
   application_id: string | null;
   metadata: Record<string, any> | null;
+  session_id?: string | null;
 }
 
 // 创建支付选项
