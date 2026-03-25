@@ -89,6 +89,25 @@ await sdk.redemption.redeemCode("XXXX-XXXX-XXXX-XXXX");
 
 ## 更新日志
 
+### v1.0.6 (2026-03-25)
+
+**支付会话字段补齐与更新日志补充**
+
+**💳 支付记录类型对齐**
+- `PaymentRecord` 新增 `session_id?: string | null`
+- SDK 类型与当前云端 `payment_history.session_id` 字段保持一致
+- 便于支付完成页、回跳页按会话 ID 查询支付状态
+
+**🔧 开发体验提升**
+- `getPaymentBySessionId()` / `verifyPaymentBySessionId()` 的返回类型提示更完整
+- 降低支付回跳链路中的字段漂移风险
+
+**📝 文档补充**
+- 新增 `CHANGELOG-v1.0.6.md`
+- 补充本次版本发布说明
+
+---
+
 ### v1.0.5 (2026-03-25)
 
 **支付模块重构与显示优化**
