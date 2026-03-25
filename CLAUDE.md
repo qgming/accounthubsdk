@@ -4,13 +4,32 @@
 
 AccountHub SDK 是一个企业级多应用账户管理 SDK，基于 Supabase 构建，提供完整的用户认证、会员管理、支付集成、配置管理、版本更新、AI 对话和兑换码功能。
 
-**当前版本**: v1.0.4 (2026-03-13)
+**当前版本**: v1.0.5 (2026-03-25)
 **技术栈**: TypeScript 5.3, Supabase 2.39, @noble/ciphers, @noble/hashes
 **构建工具**: tsup 8.0
 
 ---
 
-## v1.0.4 核心变更
+## v1.0.5 核心变更
+
+### 支付模块重构与显示优化
+
+#### 1. 支付方式简化
+- **移除冗余方式**：只支持 `alipay`（支付宝官方）、`wxpay`（微信官方）、`epay`（易支付）
+- **类型简化**：`PaymentMethod` 从 5 种减少到 3 种
+- **新增配置接口**：`AlipayConfig`、`WxpayConfig`、`EpayConfig`
+
+#### 2. 易支付显示优化
+- **自动转换**：SDK 自动将 `payment_method='epay'` + `config.type='wxpay'` 转换为 `display_method='wxpay'`, `display_name='微信支付'`
+- **透明处理**：前端无需额外逻辑，用户看到的是熟悉的"微信支付"或"支付宝"
+- **新增字段**：`PaymentChannelConfig` 接口新增 `display_method` 和 `display_name` 可选字段
+
+#### 3. 类型安全提升
+- 新增 `AlipayConfig` 接口：`app_id`、`gateway`、`private_key`、`public_key`
+- 新增 `WxpayConfig` 接口：`app_id`、`mch_id`、`api_key`、`trade_type`
+- 新增 `EpayConfig` 接口：`api_url`、`pid`、`key`、`type`
+
+---
 
 ### 配置模块性能与离线体验全面升级
 

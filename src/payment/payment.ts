@@ -308,7 +308,7 @@ export class Payment {
   }
 
   /**
-   * 获取支付渠道配置
+   * 获取支付渠道配置(带显示优化)
    * @param channelId 渠道 ID
    * @returns 支付渠道配置
    */
@@ -330,7 +330,10 @@ export class Payment {
         );
       }
 
-      return data;
+      if (!data) return null;
+
+      // 优化显示:如果是易支付,根据type返回对应的显示名称
+      return this.normalizePaymentChannel(data);
     } catch (error) {
       if (error instanceof PaymentError) throw error;
       throw new PaymentError(
@@ -342,8 +345,8 @@ export class Payment {
   }
 
   /**
-   * 获取应用的支付渠道列表
-   * @param applicationId 应用 ID（可选，默认使用配置中的 appId）
+   * 获取应用的支付渠道列表(带显示优化)
+   * @param applicationId 应用 ID(可选,默认使用配置中的 appId)
    * @returns 支付渠道列表
    */
   async getPaymentChannels(applicationId?: string): Promise<PaymentChannelConfig[]> {
@@ -367,7 +370,8 @@ export class Payment {
         );
       }
 
-      return data || [];
+      // 对每个渠道应用显示优化
+      return (data || []).map(channel => this.normalizePaymentChannel(channel));
     } catch (error) {
       if (error instanceof PaymentError) throw error;
       throw new PaymentError(
@@ -502,6 +506,41 @@ export class Payment {
         ...options?.metadata,
       },
     });
+  }
+
+  /**
+   * 标准化支付渠道显示
+   * @private
+   */
+  private normalizePaymentChannel(channel: PaymentChannelConfig): PaymentChannelConfig {
+    // 如果是易支付,根据type字段返回对应的显示信息
+    if (channel.payment_method === 'epay' && channel.config?.type) {
+      return {
+        ...channel,
+        // 添加显示字段
+        display_method: channel.config.type as string, // 'alipay' 或 'wxpay'
+        display_name: this.getDisplayName(channel.config.type as string),
+      };
+    }
+
+    return {
+      ...channel,
+      display_method: channel.payment_method,
+      display_name: this.getDisplayName(channel.payment_method),
+    };
+  }
+
+  /**
+   * 获取支付方式显示名称
+   * @private
+   */
+  private getDisplayName(method: string): string {
+    const names: Record<string, string> = {
+      alipay: '支付宝',
+      wxpay: '微信支付',
+      epay: '易支付',
+    };
+    return names[method] || method;
   }
 }
 

@@ -89,6 +89,42 @@ await sdk.redemption.redeemCode("XXXX-XXXX-XXXX-XXXX");
 
 ## 更新日志
 
+### v1.0.5 (2026-03-25)
+
+**支付模块重构与显示优化**
+
+**💳 支付方式简化**
+- 移除冗余支付方式：`wechat`、`stripe`、`manual`
+- 仅支持三种支付方式：`alipay`（支付宝官方）、`wxpay`（微信官方）、`epay`（易支付）
+- 新增具体配置类型：`AlipayConfig`、`WxpayConfig`、`EpayConfig`
+
+**🎨 易支付显示优化**
+- `PaymentChannelConfig` 新增 `display_method` 和 `display_name` 字段
+- 易支付渠道自动转换为实际支付方式显示：
+  - `epay` + `config.type='wxpay'` → `display_method='wxpay'`, `display_name='微信支付'`
+  - `epay` + `config.type='alipay'` → `display_method='alipay'`, `display_name='支付宝'`
+- `getPaymentChannel()` 和 `getPaymentChannels()` 自动应用显示优化
+
+**🔧 类型安全提升**
+- `PaymentMethod` 类型从 `'alipay' | 'wechat' | 'stripe' | 'manual' | 'epay'` 简化为 `'alipay' | 'wxpay' | 'epay'`
+- 新增 `AlipayConfig` 接口：支付宝官方配置类型
+- 新增 `WxpayConfig` 接口：微信官方配置类型
+- 新增 `EpayConfig` 接口：易支付配置类型（支持 `type: 'alipay' | 'wxpay'`）
+
+**✨ 用户体验改进**
+- 前端无需额外处理，SDK 自动将易支付渠道显示为用户熟悉的"微信支付"或"支付宝"
+- 保持底层数据结构统一（`payment_method='epay'`），同时提供用户友好的显示层
+
+**⚠️ 破坏性变更**
+
+| 变更项 | v1.0.4 | v1.0.5 |
+|--------|--------|--------|
+| `PaymentMethod` 类型 | 含 `'wechat'` \| `'stripe'` \| `'manual'` | 仅 `'alipay'` \| `'wxpay'` \| `'epay'` |
+
+迁移：将代码中的 `'wechat'` → `'wxpay'`，移除 `'stripe'` 和 `'manual'` 的使用。
+
+---
+
 ### v1.0.4 (2026-03-13)
 
 **配置模块性能与离线体验全面升级**

@@ -3,7 +3,7 @@
  */
 
 // 支付方式
-export type PaymentMethod = 'alipay' | 'wechat' | 'stripe' | 'manual' | 'epay';
+export type PaymentMethod = 'alipay' | 'wxpay' | 'epay';
 
 // 支付状态
 export type PaymentStatus = 'success' | 'failed' | 'pending' | 'refunded';
@@ -18,6 +18,9 @@ export interface PaymentChannelConfig {
   is_sandbox: boolean | null;
   created_at: string | null;
   updated_at: string | null;
+  // 显示优化字段
+  display_method?: string;  // 用于显示的支付方式(易支付会转换为实际类型)
+  display_name?: string;    // 用于显示的名称
 }
 
 // 结账会话
